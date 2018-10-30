@@ -36,8 +36,15 @@ int main(int argc, char **argv) {
     //! End of conveyor initialization
 
     //! Start of drone control
-    ros::ServiceClient drone_client = n.serviceClient<osrf_gear::DroneControl>("/ariac/drone")
-
+    ros::ServiceClient drone_client = n.serviceClient<osrf_gear::DroneControl>("/ariac/drone");
+    osrf_gear::DroneControl drone_srv;
+    drone_srv.request.shipment_type = "Dummy Shipment";
+    drone_srv.response.success = false;
+    while(!drone_srv.response.success){
+        ROS_WARN("Not successful starting conveyor... Repeat Calling...");
+        drone_client.call(drone_srv);
+        ros::Duration(0.5).sleep();        
+    }
 
     return 0;
 }
