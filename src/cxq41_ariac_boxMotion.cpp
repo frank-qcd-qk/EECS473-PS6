@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h> // this message type is defined in the current package
 #include <osrf_gear/ConveyorBeltControl.h>
+#include <osrf_gear/DroneControl.h>
 #include <iostream>
 #include <string>
 using namespace std;
@@ -34,7 +35,8 @@ int main(int argc, char **argv) {
     ROS_INFO("Conveyor Startup Success");
     //! End of conveyor initialization
 
-    //! Start of 
+    //! Start of drone control
+    ros::ServiceClient drone_client = n.serviceClient<osrf_gear::DroneControl>("/ariac/drone")
 
 
     return 0;
