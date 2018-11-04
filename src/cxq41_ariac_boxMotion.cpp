@@ -116,12 +116,8 @@ int main(int argc, char **argv) {
     startConveyor(n);
     
     while(ros::ok()){
-        while(g_cam2_data.models.size()>0){
-            ROS_INFO("The current box z position is: %f",g_cam2_data.pose.position.z);
-            ros::spinOnce(); //allow data from call back
-            ros::Duration(0.5).sleep();
-        }
+        
     }
 
-    return 0;
+    return 0;//Should not reach here if ros is ok.
 }
