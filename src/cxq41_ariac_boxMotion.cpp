@@ -10,6 +10,7 @@ using namespace std;
 //! Global Variabls:
 bool g_take_new_snapshot = false;
 osrf_gear::LogicalCameraImage g_cam2_data; // Global information storage holder
+int boxCounter = 0;
 
 //! Call back for Camera2
 void camera2CallBack(const osrf_gear::LogicalCameraImage& message_Holder){
@@ -46,9 +47,9 @@ void stopConveyor(ros::NodeHandle & stopConveyorNode){
     if(!stop_conveyor.exists()){
         ROS_INFO("[Conveyor Halt]Waiting for the conveyor stop service to be ready...");
         stop_conveyor.waitForExistence();
-        ROS_INFO("[Conveyor Halt]Conveyor stop Service now ready...")
+        ROS_INFO("[Conveyor Halt]Conveyor stop Service now ready...");
     }
-    ROS_INFO("[Conveyor Halt]Stopping Conveyor...")
+    ROS_INFO("[Conveyor Halt]Stopping Conveyor...");
     osrf_gear::ConveyorBeltControl conveyor_srv_stop;
     conveyor_srv_stop.request.power = 0.0;
     conveyor_srv_stop.response.success = false;
@@ -64,14 +65,14 @@ void stopConveyor(ros::NodeHandle & stopConveyorNode){
 //! Start Conveyor Callback
 void startConveyor(ros::NodeHandle & startConveyorNode){
     ros::ServiceClient start_conveyor = startConveyorNode.serviceClient<osrf_gear::ConveyorBeltControl>("/ariac/conveyor/control");
-    if(!stop_conveyor.exists()){
+    if(!start_conveyor.exists()){
         ROS_INFO("[Conveyor Start]Waiting for the conveyor start service to be ready...");
-        stop_conveyor.waitForExistence();
-        ROS_INFO("[Conveyor Start]Conveyor start Service now ready...")
+        start_conveyor.waitForExistence();
+        ROS_INFO("[Conveyor Start]Conveyor start Service now ready...");
     }
-    ROS_INFO("[Conveyor Start]Starting Conveyor...")    
+    ROS_INFO("[Conveyor Start]Starting Conveyor...");
     osrf_gear::ConveyorBeltControl conveyor_srv_start;
-    conveyor_srv_start.request.power = 0.0;
+    conveyor_srv_start.request.power = 100.0;
     conveyor_srv_start.response.success = false;
     start_conveyor.call(conveyor_srv_start);
     while(!conveyor_srv_start.response.success){
@@ -88,9 +89,9 @@ void requestDrone(ros::NodeHandle & droneNode){
     if(!drone_client.exists()){
         ROS_INFO("[Drone call]Waiting for the drone service to be ready...");
         drone_client.waitForExistence();
-        ROS_INFO("[Drone call]drone Service now ready...")
+        ROS_INFO("[Drone call]drone Service now ready...");
     }
-    ROS_INFO("[Drone call]Calling Drone...")
+    ROS_INFO("[Drone call]Calling Drone...");
     osrf_gear::DroneControl drone_srv;
     drone_srv.request.shipment_type = "Dummy Shipment";
     drone_srv.response.success = false;
@@ -112,7 +113,7 @@ int main(int argc, char **argv) {
     //! Competition Startup Call
     start_competition(n);
     //! Start the conveyor immediately.
-    start_conveyor();
+    startConveyor(n);
     
     while(ros::ok()){
         while(g_cam2_data.models.size()>0){
@@ -120,7 +121,6 @@ int main(int argc, char **argv) {
             ros::spinOnce(); //allow data from call back
             ros::Duration(0.5).sleep();
         }
-        ros::spinOnce();
     }
 
     return 0;
