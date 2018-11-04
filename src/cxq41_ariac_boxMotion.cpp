@@ -20,6 +20,7 @@ void camera2CallBack(const osrf_gear::LogicalCameraImage& message_Holder){
     }
 }
 
+//! Start Competition Callback
 void start_competition(ros::NodeHandle & startCompetitionNode){
     ros::ServiceClient startup_client = startCompetitionNode.serviceClient<std_srvs::Trigger>("/ariac/start_competition");
     if(!startup_client.exists()){
@@ -34,37 +35,86 @@ void start_competition(ros::NodeHandle & startCompetitionNode){
     while(!startup_srv.response.success){
         ROS_WARN("[Startup Phase]Not successful startup yet... Repeat Calling...");
         startup_client.call(startup_srv);
-        ros::Duration(0.5).sleep();
+        ros::Duration(0.1).sleep();
     }
     ROS_INFO("[Startup Phase]Competition Startup Success>>>[Belt Control Phase]");
 }
 
+//! Stop Conveyor Callback
+void stopConveyor(ros::NodeHandle & stopConveyorNode){
+    ros::ServiceClient stop_conveyor = stopConveyorNode.serviceClient<osrf_gear::ConveyorBeltControl>("/ariac/conveyor/control");
+    if(!stop_conveyor.exists()){
+        ROS_INFO("[Conveyor Halt]Waiting for the conveyor stop service to be ready...");
+        stop_conveyor.waitForExistence();
+        ROS_INFO("[Conveyor Halt]Conveyor stop Service now ready...")
+    }
+    ROS_INFO("[Conveyor Halt]Stopping Conveyor...")
+    osrf_gear::ConveyorBeltControl conveyor_srv_stop;
+    conveyor_srv_stop.request.power = 0.0;
+    conveyor_srv_stop.response.success = false;
+    stop_conveyor.call(conveyor_srv_stop);
+    while(!conveyor_srv_stop.response.success){
+        ROS_WARN("[Conveyor Halt]Not successful stopping conveyor... Repeat Calling...");
+        stop_conveyor.call(conveyor_srv_stop);
+        ros::Duration(0.1).sleep();
+    }
+    ROS_INFO("[Conveyor Halt]Conveyor Stop Success");
+}
+
+//! Start Conveyor Callback
+void startConveyor(ros::NodeHandle & startConveyorNode){
+    ros::ServiceClient start_conveyor = startConveyorNode.serviceClient<osrf_gear::ConveyorBeltControl>("/ariac/conveyor/control");
+    if(!stop_conveyor.exists()){
+        ROS_INFO("[Conveyor Start]Waiting for the conveyor start service to be ready...");
+        stop_conveyor.waitForExistence();
+        ROS_INFO("[Conveyor Start]Conveyor start Service now ready...")
+    }
+    ROS_INFO("[Conveyor Start]Starting Conveyor...")    
+    osrf_gear::ConveyorBeltControl conveyor_srv_start;
+    conveyor_srv_start.request.power = 0.0;
+    conveyor_srv_start.response.success = false;
+    start_conveyor.call(conveyor_srv_start);
+    while(!conveyor_srv_start.response.success){
+        ROS_WARN("[Conveyor Start]Not successful starting conveyor... Repeat Calling...");
+        start_conveyor.call(conveyor_srv_start);
+        ros::Duration(0.1).sleep();
+    }
+    ROS_INFO("[Conveyor start]Conveyor Start Success");
+}
+
+//! Request Drone Callback
+void requestDrone(ros::NodeHandle & droneNode){
+    ros::ServiceClient drone_client = droneNode.serviceClient<osrf_gear::DroneControl>("/ariac/drone");
+    if(!drone_client.exists()){
+        ROS_INFO("[Drone call]Waiting for the drone service to be ready...");
+        drone_client.waitForExistence();
+        ROS_INFO("[Drone call]drone Service now ready...")
+    }
+    ROS_INFO("[Drone call]Calling Drone...")
+    osrf_gear::DroneControl drone_srv;
+    drone_srv.request.shipment_type = "Dummy Shipment";
+    drone_srv.response.success = false;
+    drone_client.call(drone_srv);
+    while(!drone_srv.response.success){
+        ROS_WARN("[Drone call]Not successful starting Drone... Repeat Calling...");
+        drone_client.call(drone_srv);
+        ros::Duration(0.5).sleep();        
+    }
+    ROS_INFO("[Drone call]Drone Call Success");
+}
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "cxq41_ariac_boxMotion"); //Initialization of ros
     ros::NodeHandle n; //Creates RoS Node Handle
     //! Initialization Code:
-    ros::ServiceClient conveyor_client = n.serviceClient<osrf_gear::ConveyorBeltControl>("/ariac/conveyor/control");
-    osrf_gear::ConveyorBeltControl conveyor_srv;
-    ros::ServiceClient drone_client = n.serviceClient<osrf_gear::DroneControl>("/ariac/drone");
-    osrf_gear::DroneControl drone_srv;
     ros::Subscriber camera2= n.subscribe("/ariac/logical_camera_2",1,camera2CallBack); 
-
     
     //! Competition Startup Call
     start_competition(n);
-
+    //! Start the conveyor immediately.
+    start_conveyor();
+    
     while(ros::ok()){
-        //* Start the conveyor before anything:
-        conveyor_srv.request.power = 100.0;
-        conveyor_srv.response.success = false;
-        while(!conveyor_srv.response.success){
-            ROS_WARN("Not successful starting conveyor... Repeat Calling...");
-            conveyor_client.call(conveyor_srv);
-            ros::Duration(0.5).sleep();
-        }
-        ROS_INFO("Conveyor Startup Success");
-
         while(g_cam2_data.models.size()>0){
             ROS_INFO("The current box z position is: %f",g_cam2_data.pose.position.z);
             ros::spinOnce(); //allow data from call back
@@ -72,33 +122,6 @@ int main(int argc, char **argv) {
         }
         ros::spinOnce();
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //! Start of conveyor initialization
-
-    //! End of conveyor initialization
-
-    //! Start of drone control
-    drone_srv.request.shipment_type = "Dummy Shipment";
-    drone_srv.response.success = false;
-    while(!drone_srv.response.success){
-        ROS_WARN("Not successful starting Drone... Repeat Calling...");
-        drone_client.call(drone_srv);
-        ros::Duration(0.5).sleep();        
-    }
-    ROS_INFO("Drone Call Success");
-    //! End of drone initialization
 
     return 0;
 }
