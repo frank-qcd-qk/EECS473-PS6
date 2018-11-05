@@ -15,7 +15,7 @@ int boxCounter = 0;
 //! Call back for Camera2
 void camera2CallBack(const osrf_gear::LogicalCameraImage& message_Holder){
     if(g_take_new_snapshot){
-        ROS_INFO_STREAM("Image from Cam 1: "<<message_Holder<<endl);
+        //ROS_INFO_STREAM("Image from Logical camera Cam 2: "<<message_Holder<<endl);
         g_cam2_data = message_Holder;
         g_take_new_snapshot = false;
     }
@@ -116,8 +116,34 @@ int main(int argc, char **argv) {
     startConveyor(n);
     
     while(ros::ok()){
-        
+        g_take_new_snapshot = true;
+        //g_cam2_data.models.size(); This is the control for if a box is present or not.
+        while(g_cam2_data.models.size()>0){
+            ROS_INFO("[Main]Box Under the Camera!");
+            ROS_INFO("The current box z position is: %f",g_cam2_data.models[0].pose.position.z);
+            g_take_new_snapshot = true;
+            if(g_cam2_data.models[0].pose.position.z>(-0.1)&&g_cam2_data.models[0].pose.position.z<(0.5)){
+                ROS_INFO("[Main]Box Position Achieved...Halt Conveyer Belt now...");
+                boxCounter = boxCounter + 1;
+                stopConveyor(n);
+                if (boxCounter>1){
+                    ROS_INFO("[Main]Calling Drone to pick up the box...");
+                    requestDrone(n);
+                }
+                ROS_INFO("[Main]Entering Mandatory sleep now... (Why 5 seconds!!!)");
+                ros::Duration(5).sleep(); // * Make sure conveyor belt stop for 5 seconds
+                ROS_INFO("[Main]Requesting Conveyor Belt to start...");
+                startConveyor(n);
+                ROS_INFO("[Main]Cheaty Five seconds halt on detection to let the box go away...");
+                ros::Duration(5).sleep(); // * This is not a good way to make sure the box don't get double counted... BUT, it WORKS!!!
+                break;
+            }
+            ros::spinOnce();
+        }
+        ROS_INFO("[Main]No Box Detected...");
+        ROS_INFO("The curent list size is: %i",g_cam2_data.models.size());
+        ros::spinOnce();
+        ros::Duration(1).sleep();
     }
-
     return 0;//Should not reach here if ros is ok.
 }
